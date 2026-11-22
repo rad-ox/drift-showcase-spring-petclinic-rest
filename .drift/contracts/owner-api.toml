@@ -1,0 +1,69 @@
+drift = "0.3"
+id = "owner-api"
+intent = "Retrieve owners by id and enforce non-blank owner validation when creating owners via /api/owners."
+
+[use]
+profile = "petclinic-http@1"
+
+[scope]
+surface = "GET /api/owners/{ownerId}, POST /api/owners"
+writes = ["owners"]
+reads = ["owners"]
+indirect = "none"
+
+[bind]
+code = [
+  "src/main/java/org/springframework/samples/petclinic/rest/controller/v1/OwnerRestControllerV1.java",
+  "src/main/java/org/springframework/samples/petclinic/model/Owner.java",
+  "src/main/resources/openapi.yml",
+]
+
+[cases.get-found]
+at = ["http"]
+when.method = "GET"
+when.path = "/api/owners/1"
+then.status = 200
+then.id = 1
+then.first_name = "George"
+then.last_name = "Franklin"
+then.city = "Madison"
+
+[cases.get-not-found]
+at = ["http"]
+when.method = "GET"
+when.path = "/api/owners/999"
+then.status = 404
+
+[cases.create-valid]
+at = ["http"]
+writes = ["owners"]
+when.method = "POST"
+when.path = "/api/owners"
+when.first_name = "Jane"
+when.last_name = "Doe"
+when.address = "10 Main St."
+when.city = "Madison"
+when.telephone = "6085551234"
+then.status = 201
+then.first_name = "Jane"
+then.last_name = "Doe"
+then.saved = true
+
+[cases.create-blank-address]
+at = ["http"]
+when.method = "POST"
+when.path = "/api/owners"
+when.first_name = "George"
+when.last_name = "Franklin"
+when.address = "   "
+when.city = "Madison"
+when.telephone = "6085551023"
+then.status = 400
+then.error_field = "address"
+then.saved = false
+
+[approval]
+behavior_ref = "dr2b:e55654fec7b4"
+assurance_ref = "dr2a:7e2e905731ce"
+by = "petclinic-maintainers"
+at = 2026-11-22T17:00:00Z

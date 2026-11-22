@@ -1,0 +1,24 @@
+drift = "0.3"
+profile = "petclinic-http@1"
+kit = "drift-junit"
+
+[requires]
+proof = "verified"
+
+[schema.when]
+method = { type = "string" }
+path = { type = "string" }
+first_name = { type = "string" }
+last_name = { type = "string" }
+address = { type = "string" }
+city = { type = "string" }
+telephone = { type = "string" }
+
+[schema.then]
+status = { type = "int" }
+id = { type = "int" }
+first_name = { type = "string" }
+last_name = { type = "string" }
+city = { type = "string" }
+error_field = { type = "string" }
+saved = { type = "bool" }

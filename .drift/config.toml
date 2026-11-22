@@ -1,0 +1,15 @@
+drift = "0.3"
+kind = "config"
+
+[area]
+owner = "petclinic-maintainers"
+
+[policy]
+pack = "core@1"
+approvers = ["petclinic-maintainers"]
+proof = "verified"
+
+[approval]
+ref = "dr1:8911d281b6f8"
+by = "petclinic-maintainers"
+at = 2026-11-22T17:00:00Z
