@@ -52,10 +52,10 @@ jobs:
 
       - name: Export DRIFT contract views and run mvn test
         run: |
-          mkdir -p target/drift/resolved target/drift/events
-          "$DRIFT_BIN" show .drift/contracts --as json --out target/drift/resolved
-          DRIFT_RESOLVED="$PWD/target/drift/resolved" \
-          DRIFT_EVENTS="$PWD/target/drift/events/jvm.jsonl" \
+          mkdir -p "$RUNNER_TEMP/drift-resolved" "$RUNNER_TEMP/drift-events"
+          "$DRIFT_BIN" show .drift/contracts --as json --out "$RUNNER_TEMP/drift-resolved"
+          DRIFT_RESOLVED="$RUNNER_TEMP/drift-resolved" \
+          DRIFT_EVENTS="$RUNNER_TEMP/drift-events/jvm.jsonl" \
             mvn -B -q clean test -Dtest=OwnerApiDriftTest
 
       - name: Upload DRIFT proof events artifact
@@ -63,8 +63,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: drift-events
-          path: target/drift/events
-          if-no-files-found: warn
+          path: ${{ runner.temp }}/drift-events
+          if-no-files-found: error
 
   drift-gate:
     name: DRIFT Gate (Free v0.10.0)
