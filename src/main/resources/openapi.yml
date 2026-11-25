@@ -2016,7 +2016,6 @@ components:
           type: string
           minLength: 1
           maxLength: 255
-          pattern: '[\s\S]*\S[\s\S]*'
           example: '110 W. Liberty St.'
         city:
           title: City
