@@ -71,7 +71,7 @@ class OwnerApiDriftTest {
 
     @Test
     @WithMockUser(roles = "OWNER_ADMIN")
-    @DriftCase(contract = "owner-api", cases = "get-found", level = "http")
+    @DriftCase(contract = "owner-api", cases = "get-found", level = "http", strictWhen = true)
     void returnsExistingOwner() throws Exception {
         Drift.Case c = Drift.expect("owner-api", "get-found");
         List<String> ownerWrites = trackOwnerWrites(new AtomicBoolean(false));
@@ -95,7 +95,7 @@ class OwnerApiDriftTest {
 
     @Test
     @WithMockUser(roles = "OWNER_ADMIN")
-    @DriftCase(contract = "owner-api", cases = "get-not-found", level = "http")
+    @DriftCase(contract = "owner-api", cases = "get-not-found", level = "http", strictWhen = true)
     void returnsNotFoundForUnknownOwner() throws Exception {
         Drift.Case c = Drift.expect("owner-api", "get-not-found");
         List<String> ownerWrites = trackOwnerWrites(new AtomicBoolean(false));
@@ -112,11 +112,11 @@ class OwnerApiDriftTest {
 
     @Test
     @WithMockUser(roles = "OWNER_ADMIN")
-    @DriftCase(contract = "owner-api", cases = "create-valid", level = "http")
+    @DriftCase(contract = "owner-api", cases = "create-valid", level = "http", strictWhen = true)
     void createsValidOwner() throws Exception {
         Drift.Case c = Drift.expect("owner-api", "create-valid");
         AtomicBoolean saved = new AtomicBoolean(false);
-        trackOwnerWrites(saved);
+        List<String> ownerWrites = trackOwnerWrites(saved);
 
         MvcResult result = mockMvc.perform(
                 request(HttpMethod.valueOf(c.whenString("method")), c.whenString("path"))
@@ -131,11 +131,12 @@ class OwnerApiDriftTest {
             "last_name", body.path("lastName").asText(),
             "saved", saved.get()
         );
+        c.checkFrame(Map.of("owners", Map.of("writes", ownerWrites)));
     }
 
     @Test
     @WithMockUser(roles = "OWNER_ADMIN")
-    @DriftCase(contract = "owner-api", cases = "create-blank-address", level = "http")
+    @DriftCase(contract = "owner-api", cases = "create-blank-address", level = "http", strictWhen = true)
     void rejectsBlankOwnerAddress() throws Exception {
         Drift.Case c = Drift.expect("owner-api", "create-blank-address");
         AtomicBoolean saved = new AtomicBoolean(false);

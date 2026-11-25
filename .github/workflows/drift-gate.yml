@@ -2,9 +2,9 @@ name: DRIFT Showcase Gate
 
 on:
   push:
-    branches: [drift-baseline]
+    branches: [main]
   pull_request:
-    branches: [drift-baseline]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -12,12 +12,12 @@ permissions:
 
 env:
   DRIFT_REPO: rad-ox/drift
-  DRIFT_VERSION: '0.10.0'
-  DRIFT_TAG: 'v0.10.0'
+  DRIFT_VERSION: '0.11.0'
+  DRIFT_TAG: 'v0.11.0'
 
 jobs:
   native-tests:
-    name: Native Tests (mvn test)
+    name: Native JUnit Tests (mvn test)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -28,130 +28,108 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
+          cache: maven
 
-      - name: Install DRIFT Free binary (SHA256 verified)
+      - name: Install DRIFT Free v0.11.0 (SHA256 verified)
         run: |
-          mkdir -p "$RUNNER_TEMP/drift-bin"
-          cd "$RUNNER_TEMP/drift-bin"
+          mkdir -p "$RUNNER_TEMP/drift-pkg"
+          cd "$RUNNER_TEMP/drift-pkg"
           BASE="https://github.com/${DRIFT_REPO}/releases/download/${DRIFT_TAG}"
           TAR="drift-${DRIFT_VERSION}-linux-x64.tar.gz"
           curl -fsSLO "$BASE/$TAR"
           curl -fsSLO "$BASE/SHA256SUMS"
-          grep "  $TAR$" SHA256SUMS | sha256sum -c -
+          sha256sum --ignore-missing -c SHA256SUMS
           tar -xzf "$TAR"
-          DRIFT_PATH="$(find "$RUNNER_TEMP/drift-bin" -maxdepth 3 -type f -name drift | head -n 1)"
-          chmod +x "$DRIFT_PATH"
-          echo "DRIFT_BIN=$DRIFT_PATH" >> "$GITHUB_ENV"
+          "./drift-${DRIFT_VERSION}-linux-x64/install.sh" --no-skill --no-hooks
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Install drift-junit bridge from pinned DRIFT tag
+      - name: Run native JUnit 5 tests (no DRIFT gate)
         run: |
-          git clone --depth 1 --branch "${DRIFT_TAG}" \
-            "https://github.com/${DRIFT_REPO}.git" \
-            "$RUNNER_TEMP/drift-upstream"
-          mvn -q -B -f "$RUNNER_TEMP/drift-upstream/bridges/jvm/drift-junit/pom.xml" install -DskipTests
-
-      - name: Export DRIFT contract views and run mvn test
-        run: |
-          mkdir -p "$RUNNER_TEMP/drift-resolved" "$RUNNER_TEMP/drift-events"
-          "$DRIFT_BIN" show .drift/contracts --as json --out "$RUNNER_TEMP/drift-resolved"
-          DRIFT_RESOLVED="$RUNNER_TEMP/drift-resolved" \
-          DRIFT_EVENTS="$RUNNER_TEMP/drift-events/jvm.jsonl" \
-            mvn -B -q clean test -Dtest=OwnerApiDriftTest
-
-      - name: Upload DRIFT proof events artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: drift-events
-          path: ${{ runner.temp }}/drift-events
-          if-no-files-found: error
+          DRIFT_STRICT_WHEN=1 mvn -q -B test -Dtest=OwnerApiDriftTest
 
   drift-gate:
-    name: DRIFT Gate (Free v0.10.0)
-    needs: native-tests
-    if: always()
+    name: DRIFT v0.11.0 Gate + Independent MIT Verifier
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Download proof events
-        uses: actions/download-artifact@v4
+      - name: Setup Java 25 (Temurin)
+        uses: actions/setup-java@v6
         with:
-          name: drift-events
-          path: drift-events
-
-      - name: Install DRIFT Free binary (SHA256 verified)
-        run: |
-          mkdir -p "$RUNNER_TEMP/drift-bin"
-          cd "$RUNNER_TEMP/drift-bin"
-          BASE="https://github.com/${DRIFT_REPO}/releases/download/${DRIFT_TAG}"
-          TAR="drift-${DRIFT_VERSION}-linux-x64.tar.gz"
-          curl -fsSLO "$BASE/$TAR"
-          curl -fsSLO "$BASE/SHA256SUMS"
-          grep "  $TAR$" SHA256SUMS | sha256sum -c -
-          tar -xzf "$TAR"
-          DRIFT_PATH="$(find "$RUNNER_TEMP/drift-bin" -maxdepth 3 -type f -name drift | head -n 1)"
-          chmod +x "$DRIFT_PATH"
-          echo "DRIFT_BIN=$DRIFT_PATH" >> "$GITHUB_ENV"
-
-      - name: Run drift gate (Free edition)
-        run: |
-          set +e
-          DRIFT_EDITION=free "$DRIFT_BIN" gate .drift/contracts --events drift-events --explain > gate.txt 2>&1
-          RC=$?
-          cat gate.txt
-          {
-            echo "## DRIFT Gate (Free ${DRIFT_TAG})"
-            echo ""
-            echo '```text'
-            cat gate.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit $RC
-
-  open-verifier:
-    name: Open MIT Verifier (drift_verify.py)
-    needs: native-tests
-    if: always()
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+          distribution: temurin
+          java-version: '25'
+          cache: maven
 
       - name: Setup Python 3.14
         uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
-      - name: Download proof events
-        uses: actions/download-artifact@v4
-        with:
-          name: drift-events
-          path: drift-events
-
-      - name: Fetch open MIT verifier from pinned DRIFT tag
+      - name: Install DRIFT Free v0.11.0 (SHA256 verified)
         run: |
-          git clone --depth 1 --branch "${DRIFT_TAG}" \
-            "https://github.com/${DRIFT_REPO}.git" \
-            "$RUNNER_TEMP/drift-upstream"
-          python3 "$RUNNER_TEMP/drift-upstream/verifier/drift_verify.py" --self-test
+          mkdir -p "$RUNNER_TEMP/drift-pkg"
+          cd "$RUNNER_TEMP/drift-pkg"
+          BASE="https://github.com/${DRIFT_REPO}/releases/download/${DRIFT_TAG}"
+          TAR="drift-${DRIFT_VERSION}-linux-x64.tar.gz"
+          curl -fsSLO "$BASE/$TAR"
+          curl -fsSLO "$BASE/SHA256SUMS"
+          sha256sum --ignore-missing -c SHA256SUMS
+          tar -xzf "$TAR"
+          "./drift-${DRIFT_VERSION}-linux-x64/install.sh" --no-skill --no-hooks
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "DRIFT_VERIFIER=$RUNNER_TEMP/drift-pkg/drift-${DRIFT_VERSION}-linux-x64/verifier/drift_verify.py" >> "$GITHUB_ENV"
 
-      - name: Independently verify DRIFT proofs
+      - name: Run drift run --gate and verify MIT parity
         run: |
           set +e
-          python3 "$RUNNER_TEMP/drift-upstream/verifier/drift_verify.py" \
+          DRIFT_EDITION=free DRIFT_STRICT_WHEN=1 \
+            drift run --events target/drift-events --gate -- \
+            mvn -q -B test -Dtest=OwnerApiDriftTest
+          RUN_RC=$?
+
+          DRIFT_EDITION=free drift gate .drift/contracts --events target/drift-events --json > gate.json
+          GATE_RC=$?
+          DRIFT_EDITION=free drift gate .drift/contracts --events target/drift-events --explain > gate.txt 2>&1
+
+          python3 "$DRIFT_VERIFIER" --self-test
+          SELFTEST_RC=$?
+
+          python3 "$DRIFT_VERIFIER" \
             .drift/contracts \
             --config .drift/config.toml \
-            --events drift-events \
-            --json > verifier.json 2>&1
-          RC=$?
+            --events target/drift-events \
+            --compare-gate gate.json \
+            --json > verifier.json
+          VERIFIER_RC=$?
+
+          python3 -c 'import json, sys; d = json.load(open("verifier.json")); sys.exit(0 if d.get("parity", {}).get("ok") is True else 1)'
+          PARITY_RC=$?
+
+          echo "=== drift gate --explain ==="
+          cat gate.txt
+          echo "=== drift_verify.py --compare-gate ==="
           cat verifier.json
+
           {
-            echo "## Open MIT Verifier (\`verifier/drift_verify.py\` @ ${DRIFT_TAG})"
+            echo "## DRIFT Gate (Free ${DRIFT_TAG})"
+            echo ""
+            echo '```text'
+            cat gate.txt
+            echo '```'
+            echo ""
+            echo "## Independent MIT Verifier (\`drift_verify.py --compare-gate\`)"
             echo ""
             echo '```json'
             cat verifier.json
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          exit $RC
+
+          if [ "$SELFTEST_RC" -ne 0 ] || [ "$PARITY_RC" -ne 0 ]; then
+            echo "Independent verifier self-test or parity check failed (selftest=$SELFTEST_RC parity=$PARITY_RC)"
+            exit 1
+          fi
+          if [ "$RUN_RC" -ne 0 ] || [ "$GATE_RC" -ne 0 ] || [ "$VERIFIER_RC" -ne 0 ]; then
+            exit 1
+          fi
+

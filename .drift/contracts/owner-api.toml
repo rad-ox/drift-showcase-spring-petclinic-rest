@@ -20,6 +20,7 @@ code = [
 
 [cases.get-found]
 at = ["http"]
+writes = []
 when.method = "GET"
 when.path = "/api/owners/1"
 then.status = 200
@@ -30,6 +31,7 @@ then.city = "Madison"
 
 [cases.get-not-found]
 at = ["http"]
+writes = []
 when.method = "GET"
 when.path = "/api/owners/999"
 then.status = 404
@@ -51,6 +53,7 @@ then.saved = true
 
 [cases.create-blank-address]
 at = ["http"]
+writes = []
 when.method = "POST"
 when.path = "/api/owners"
 when.first_name = "George"
@@ -63,7 +66,7 @@ then.error_field = "address"
 then.saved = false
 
 [approval]
-behavior_ref = "dr2b:e55654fec7b4"
+behavior_ref = "dr2b:5ff60d831678"
 assurance_ref = "dr2a:7e2e905731ce"
-by = "petclinic-maintainers"
-at = 2026-11-22T17:00:00Z
+by = "rad-ox"
+at = 2026-11-25T19:15:28Z
