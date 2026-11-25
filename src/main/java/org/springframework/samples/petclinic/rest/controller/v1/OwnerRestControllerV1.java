@@ -100,7 +100,7 @@ public class OwnerRestControllerV1 implements OwnersApi {
     @Override
     public ResponseEntity<OwnerDto> addOwner(OwnerFieldsDto ownerFieldsDto) {
         HttpHeaders headers = new HttpHeaders();
-        Owner owner = ownerMapper.toOwner(ownerFieldsDto);
+        Owner owner = normalizeOwnerFields(ownerMapper.toOwner(ownerFieldsDto));
         this.clinicService.saveOwner(owner);
         OwnerDto ownerDto = ownerMapper.toOwnerDto(owner);
         headers.setLocation(UriComponentsBuilder.newInstance()
@@ -199,5 +199,24 @@ public class OwnerRestControllerV1 implements OwnersApi {
             }
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    private static Owner normalizeOwnerFields(Owner owner) {
+        if (owner.getFirstName() != null) {
+            owner.setFirstName(owner.getFirstName().trim());
+        }
+        if (owner.getLastName() != null) {
+            owner.setLastName(owner.getLastName().trim());
+        }
+        if (owner.getAddress() != null) {
+            owner.setAddress(owner.getAddress().trim());
+        }
+        if (owner.getCity() != null) {
+            owner.setCity(owner.getCity().trim());
+        }
+        if (owner.getTelephone() != null) {
+            owner.setTelephone(owner.getTelephone().trim());
+        }
+        return owner;
     }
 }
